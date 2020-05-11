@@ -78,8 +78,8 @@ import datetime as dtime
 from fbprophet import Prophet
 
 # Input and Output Paths
-input_path = 'C:/Rishabh/Dropbox/Data Science and Analytics/2. Project(s)/1. Time Series Forecasting/1. Store Item Sales Forecasting/2. Raw Data/'
-output_path = 'C:/Rishabh/Dropbox/Data Science and Analytics/2. Project(s)/1. Time Series Forecasting/1. Store Item Sales Forecasting/3. Output Data/'
+input_path = ' ' #Enter the input folder path
+output_path = ' ' #Enter the output folder path
 
 # Read the data check
 read_data = "YES"
