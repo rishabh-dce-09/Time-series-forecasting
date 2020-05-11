@@ -500,7 +500,7 @@ else:
 ######################################################################################################################################## 
                                                                                                                                
 ######################################################################################################################################## 
-# IMPORTANT - How to understand ADF and KPSS results                                                                                   #    
+# IMPORTANT - How to interpret ADF and KPSS results                                                                                   #    
 #                                                                                                                                      # 
 # Case 1: Both tests conclude that the series is not stationary -> series is not stationary                                            #
 # Case 2: Both tests conclude that the series is stationary -> series is stationary                                                    #
