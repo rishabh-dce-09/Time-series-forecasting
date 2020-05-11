@@ -27,9 +27,6 @@
 # Step 5.c - (i): ACF And PACF plots                                                                                                   #
 # Step 5.c - (ii): (S)ARIMA(X) - Feature Engineering + Model                                                                           #
 # Step 5.d: XGBOOST                                                                                                                    #
-# Step 5.e: Light Boost                                                                                                                #
-# Step 5.f: FB Prophet                                                                                                                 #
-# Step 5.g: Algorithm IV - Recurrent Neural Networks - LSTM                                                                            #
 # Step 6: Model Comparison                                                                                                             #
 # Step 7: Forecasting                                                                                                                  #
 #                                                                                                                                      #
@@ -141,7 +138,6 @@ output_forecast = "YES"
 # Output Accuracy dataframe
 output_accuracy = "YES"
 # output_accuracy = "NO"
-
 
 #############  READ THE DATA   ##############
 
@@ -1110,13 +1106,6 @@ def encode_and_bind(original_dataframe, feature_to_encode):
 # for feature in features_to_encode:
 #     df_arima_exo_update = encode_and_bind(original_dataframe = df_arima_exo, feature_to_encode = feature)
 df_arima_exo_update = encode_and_bind(original_dataframe = df_arima_exo, feature_to_encode = features_to_encode)
-    
-# df_arima_exo.info()
-# df_arima_exo_update.info()
-# df_arima_exo_update.head()
-# df_arima_exo_update.to_excel("check.xlsx")
-
-# Multi collinearity check
 
 def auto_arima_with_exo(store_num, product_num, split_date):
 
@@ -1126,41 +1115,8 @@ def auto_arima_with_exo(store_num, product_num, split_date):
     df_arima_multi_col_check = df_auto_arima_new.copy()
     df_arima_multi_col_check = df_arima_multi_col_check.drop(columns = ['date', 'store', 'item', 'sales'])
     df_arima_multi_col_check.info()
-
-    # NOT USING VIF since dummy variables have been created
-    # Removing the collinear variables using VIF 
-    
-    # def calculate_vif_(X, thresh):
-    #     variables = list(range(X.shape[1]))
-    #     dropped = True
-    #     while dropped:
-    #         dropped = False
-    #         vif = [variance_inflation_factor(X.iloc[:, variables].values, ix) for ix in range(X.iloc[:, variables].shape[1])]
-    
-    #         maxloc = vif.index(max(vif))
-    #         if max(vif) > thresh:
-    #             print('dropping \'' + X.iloc[:, variables].columns[maxloc] +
-    #                   '\' at index: ' + str(maxloc))
-    #             del variables[maxloc]
-    #             dropped = True
-    
-    #     print('Remaining variables:')
-    #     print(X.columns[variables])
-    #     return X.iloc[:, variables]
-    
-    # keep_cols = list(calculate_vif_(X = df_arima_multi_col_check, thresh = 5.0))
-    # print(keep_cols)
-    
-    # keep_cols.extend(['date', 'store', 'item', 'sales'])
-    # print(keep_cols)
-    
-    # df_arima_multi_col_check_2 = df_auto_arima_new.copy()
-    # df_arima_multi_col_check_2 = df_arima_multi_col_check_2[keep_cols]
-    # df_arima_multi_col_check_2.info()
     
     df_arima_multi_col_check_2 = df_auto_arima_new.copy()
-    
-    # 
     train_with_exo = df_arima_multi_col_check_2[(df_arima_multi_col_check_2['date'] < f'{split_date}')]
     test_with_exo = df_arima_multi_col_check_2[(df_arima_multi_col_check_2['date'] >= f'{split_date}')]
     
@@ -1403,138 +1359,5 @@ if output_accuracy == "YES":
     df_accuracy_all.to_excel(f'{output_path}Accuracy_all.xlsx')
 else:
     print("Accuracy dataframe was *NOT* output to excel")
-
-
-
-######################################################################################################################################## 
-#                                                                                                                                      #    
-#############################                              WORK IN PROGRESS                             ################################ 
-#                                                                                                                                      #
-########################################################################################################################################
-
-
-######################################################################################################################################## 
-######################################################################################################################################## 
-######################################################################################################################################## 
-
-
-######################################################################################################################################## 
-#                                                                                                                                      #    
-############################                                  LIGHT GBM                                   ############################## 
-#                                                                                                                                      #
-########################################################################################################################################
-
-def light_gbm(store_num, product_num, split_date): 
-
-    # store_num = key_store_num_1
-    # product_num = key_product_num_1
-    # test_train = 0.75
-    # split_date = '2016-09-01'
-    
-    # split_date_update = '2015-06-01'
-    
-    
-    df_light_gbm = df_arima_exo_update.copy()    
-    df_light_gbm = df_light_gbm[(df_light_gbm['store'] == store_num) & (df_light_gbm['item'] == product_num)] 
-    
-    train_light_gbm = df_light_gbm[(df_light_gbm['date'] < f'{split_date}')]
-    test_light_gbm = df_light_gbm[(df_light_gbm['date'] >= f'{split_date}')]
-    
-    y_train = train_light_gbm['sales']
-    X_train = train_light_gbm.drop(columns = ['date','sales','store','item'])
-    
-    y_test = test_light_gbm['sales']
-    X_test = test_light_gbm.drop(columns = ['date','sales','store','item'])
-    
-    train_data=lgb.Dataset(X_train,label=y_train)
-    
-    hyper_params = {
-        'task': 'train',
-        'boosting_type': 'gbdt',
-        'objective': 'regression',
-        'metric': ['l2', 'auc'],
-        'learning_rate': 0.5,
-        'feature_fraction': 0.9,
-        'bagging_fraction': 0.7,
-        'bagging_freq': 10,
-        'verbose': 0,
-        "max_depth": 25,
-        "num_leaves": 128,  
-        "max_bin": 512,
-        "num_iterations": 100000,
-        "n_estimators": 1000
-    }
-    
-    #training our model using light gbm
-    num_round=50
-    start=dtime.datetime.now()
-    gbm = lgb.LGBMRegressor(**hyper_params)
-    gbm.fit(X_train, y_train,
-            eval_set=[(X_test, y_test)],
-            eval_metric='l1',
-            early_stopping_rounds=1000)
-    
-    stop=dtime.datetime.now()
-    
-    #Execution time of the model
-    execution_time_lgbm = stop-start
-    execution_time_lgbm
-    
-    test_light_gbm['sales_Prediction'] = gbm.predict(X_test, num_iteration=gbm.best_iteration_)
-    
-    df_test_forecast = test_light_gbm.copy().rename(columns={"sales_Prediction":"Prediction_lightgbm"})
-    df_test_forecast = df_test_forecast[['Prediction_lightgbm']]
-    df_test_forecast = df_test_forecast.merge(test_light_gbm[['store','item','sales']], how='inner', left_index= True,
-                                              right_index = True)
-    
-    
-    #plot the predictions for validation set
-    figure(figsize=(10,6))    
-    plt.style.use('seaborn-dark-palette')
-    plt.plot(train_light_gbm['sales'][-100:], label='Train')
-    plt.plot(test_light_gbm['sales'], label='Test')
-    plt.plot(test_light_gbm['sales_Prediction'], label='Prediction')
-    plt.title(f'Actual vs Forecast for Store {store_num} and Product/Item {product_num}') 
-    plt.legend(loc='upper left')
-    plt.show()
-    
-    y_true = test_light_gbm['sales']
-    y_pred = test_light_gbm['sales_Prediction']
-    y_true = np.array(y_true[:])
-    y_pred = np.array(y_pred[:])
-    
-    MAPE_var = round(np.mean(np.abs((y_true - y_pred) / y_true)) * 100,2)
-    MSE_var = round(np.mean((np.square(y_pred - y_true))),2)
-    RMSE_var = round(np.sqrt(np.mean((np.square(y_pred - y_true)))),2)
-    
-    print(f"MAPE(Light GBM) for Store {store_num} and Product/Item {product_num} is: {MAPE_var}")
-    print(f"MSE(Light GBM) for Store {store_num} and Product/Item {product_num} is: {MSE_var}")
-    print(f"RMSE(Light GBM) for Store {store_num} and Product/Item {product_num} is: {RMSE_var} \n")
-
-    df_accuracy = pd.DataFrame({'ID': ['LIGHT_GBM'], 'Store': [f'{store_num}'], 'Product':[f'{product_num}'],
-                            'MAPE':[f'{MAPE_var}'],'MSE':[f'{MSE_var}'],'RMSE':[f'{RMSE_var}']}) 
-    
-    return df_test_forecast, df_accuracy
-
-df_forecast_1, df_accuracy_1 = light_gbm(store_num = key_store_num_1, product_num = key_product_num_1, split_date = test_train_split_date)
-df_forecast_2, df_accuracy_2 = light_gbm(store_num = key_store_num_2, product_num = key_product_num_2, split_date = test_train_split_date)
-
-df_light_gbm_forecast = df_forecast_1.append(df_forecast_2)
-df_light_gbm_accuracy = df_accuracy_1.append(df_accuracy_2)
-
-######################################################################################################################################## 
-#                                                                                                                                      #    
-############################                                 FB PROPHET                                   ############################## 
-#                                                                                                                                      #
-########################################################################################################################################
-
-
-
-######################################################################################################################################## 
-#                                                                                                                                      #    
-############################                                 RNN - LSTM                                   ############################## 
-#                                                                                                                                      #
-########################################################################################################################################
-
 
 ########################################################### END OF CODE ################################################################
