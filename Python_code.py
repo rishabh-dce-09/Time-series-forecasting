@@ -161,12 +161,12 @@ df.describe() # Check
 # Counting 0 sales values
 df_arry = df[df['sales'] == 0]['sales'].count()
 
+# Checking for null values: No Null values found
+df.isnull().sum()
+
 # Create a backup of the main df
 df_copy = df.copy()
 # df_copy.head()
-
-# Checking for null values: No Null values found
-df.isnull().sum()
 
 # Replace null values with mean or median
 # df_copy.fillna(df_copy.mean(), inplace = True)      # Easier to explain and hence preferred method
