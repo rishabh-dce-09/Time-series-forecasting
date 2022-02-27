@@ -27,6 +27,9 @@
 # Step 5.c - (i): ACF And PACF plots                                                                                                   #
 # Step 5.c - (ii): (S)ARIMA(X) - Feature Engineering + Model                                                                           #
 # Step 5.d: XGBOOST                                                                                                                    #
+# Step 5.e: Light Boost                                                                                                                #
+# Step 5.f: FB Prophet                                                                                                                 #
+# Step 5.g: Algorithm IV - Recurrent Neural Networks - LSTM                                                                            #
 # Step 6: Model Comparison                                                                                                             #
 # Step 7: Forecasting                                                                                                                  #
 #                                                                                                                                      #
@@ -72,11 +75,11 @@ from xgboost import plot_importance, plot_tree
 import lightgbm as lgb 
 import datetime as dtime
 
-from fbprophet import Prophet
+# from fbprophet import Prophet
 
 # Input and Output Paths
-input_path = ' ' #Enter the input folder path
-output_path = ' ' #Enter the output folder path
+input_path = 'D:/Rishabh Kumar/Dropbox/2. Self Learning/1. Data Science and Analytics/2. Project(s)/1. Time Series Forecasting/1. Store Item Sales Forecasting/2. Raw Data/'
+output_path = 'D:/Rishabh Kumar/Dropbox/2. Self Learning/1. Data Science and Analytics/2. Project(s)/1. Time Series Forecasting/1. Store Item Sales Forecasting/3. Output Data/'
 
 # Read the data check
 read_data = "YES"
@@ -139,6 +142,7 @@ output_forecast = "YES"
 output_accuracy = "YES"
 # output_accuracy = "NO"
 
+
 #############  READ THE DATA   ##############
 
 if read_data == "YES":
@@ -161,12 +165,12 @@ df.describe() # Check
 # Counting 0 sales values
 df_arry = df[df['sales'] == 0]['sales'].count()
 
-# Checking for null values: No Null values found
-df.isnull().sum()
-
 # Create a backup of the main df
 df_copy = df.copy()
 # df_copy.head()
+
+# Checking for null values: No Null values found
+df.isnull().sum()
 
 # Replace null values with mean or median
 # df_copy.fillna(df_copy.mean(), inplace = True)      # Easier to explain and hence preferred method
@@ -442,7 +446,8 @@ def time_series_decomp_only1(decomp_type, period_num, store_num, product_num):
     figure(figsize=(10,6))
     plt.style.use('seaborn-notebook')
     result = seasonal_decompose(df_time_decomp, model="{}".format(str(decomp_type)), period = period_num)
-    result.plot()
+    result.plot().suptitle(f"{decomp_type.title()} time series decomposition of sales for Store {store_num} and Product/Item {product_num} ", fontsize=13)
+    # result.plot()
     plt.show()
     
 ### 4.1.1 Additive decompostion of the time series ###
@@ -582,21 +587,7 @@ adf_test(store_num = key_store_num_2, product_num = key_product_num_2)
 # sma_list = [[3,"green"],[5,"blue"],[7,"yellow"],[9,"black"],[14,"magenta"]]
 
 def simple_moving_average(store_num, product_num, list_name, plot_start):
-    """
-    Parameters
-    ----------
-    store_num : int
-        unique identifier for store
-    product_num : TYPE
-        DESCRIPTION.
-    list_name : TYPE
-        DESCRIPTION.
 
-    Returns
-    -------
-    None.
-
-    """
     df_moving_avg = df_copy.copy()
     df_moving_avg = df_moving_avg[(df_copy['store'] == store_num) & (df_copy['item'] == product_num)] 
     
@@ -619,7 +610,7 @@ def simple_moving_average(store_num, product_num, list_name, plot_start):
         # plt.plot(x_axis, "df_moving_avg.rolling_mean_{}".format(list_name[i][0]), label= "Sales {} Day SMA".format(list_name[i][0]), color= "{}".format(list_name[i][1]))
         i = i+1
          
-    plt.title(f'Sales by for Store {store_num} and Product/Item {product_num}')
+    plt.title(f'Simple Moving Average Sales by for Store {store_num} and Product/Item {product_num}')
     plt.legend(loc='upper left')
     plt.show() 
     
@@ -685,7 +676,7 @@ def simple_exp_smt(store_num, product_num, list_name, split_date):
     while i <len(list_name):
         plt.plot(test[f'SES_{round(list_name[i]*10)}'], label=f'alpha = {list_name[i]}')
         i = i +1
-    plt.title(f"Simple Exponential Smoothing for \n Store {store_num} and Product/Item {product_num}")  
+    plt.title(f"Simple Exponential Smoothing for Store {store_num} and Product/Item {product_num}")  
     plt.legend(loc='upper left')
     plt.show()
     # test.info()
@@ -719,10 +710,10 @@ simple_exp_smt(store_num = key_store_num_2, product_num = key_product_num_2, lis
 def holt_linear_exp_smt(store_num, product_num, list_name, split_date):
 
     
-    store_num=2
-    product_num = 25
-    list_name = [[.2,.001],[.2,.003],[.4,.001],[.4,.003],[.6,.001],[.6,.003]]
-    split_date = '2016-06-30'
+    # store_num=2
+    # product_num = 25
+    # list_name = [[.2,.001],[.2,.003],[.4,.001],[.4,.003],[.6,.001],[.6,.003]]
+    # split_date = '2016-06-30'
     
     df_exp_smo= df_copy.copy()
     df_exp_smo = df_exp_smo[(df_copy['store'] == store_num) & (df_copy['item'] == product_num)] 
@@ -755,7 +746,7 @@ def holt_linear_exp_smt(store_num, product_num, list_name, split_date):
         plt.plot(test[f'Holt_linear_{round(list_name[i][0]*10)}_{list_name[i][1]}'], label=f'Holt_linear_{round(list_name[i][0]*10)}_{list_name[i][1]}')
         i = i +1
         
-    plt.title(f"Holt's Linear Smoothing for \n Store {store_num} and Product/Item {product_num}")      
+    plt.title(f"Holt's Linear Smoothing for Store {store_num} and Product/Item {product_num}")      
     plt.legend(loc='upper left')
     plt.show()
     
@@ -838,7 +829,7 @@ def holt_winter_exp_smt(store_num, product_num, list_name, period, split_date):
         plt.plot(test[f'Holt_Winter_{list_name[i][0]}_{list_name[i][1]}_{list_name[i][2]}'], label=f'Holt_Winter_{list_name[i][0]}_{list_name[i][1]}_{list_name[i][2]}')
         i = i +1
 
-    plt.title(f"Holt-Winter's Smoothing for \n Store {store_num} and Product/Item {product_num}")  
+    plt.title(f"Holt-Winter's Smoothing for Store {store_num} and Product/Item {product_num}")  
     plt.legend(loc='upper left')
     plt.show()
     
@@ -863,7 +854,7 @@ def holt_winter_exp_smt(store_num, product_num, list_name, period, split_date):
         df_check = pd.DataFrame({'ID': [f'Holt_Winter_{list_name[i][0]}_{list_name[i][1]}_{list_name[i][2]}'], 'Store': [f'{store_num}'], 'Product':[f'{product_num}'],
                                     'MAPE':[f'{MAPE_var}'],'MSE':[f'{MSE_var}'],'RMSE':[f'{RMSE_var}']}) 
         if df_accuracy_hw is not None:
-            df_accuracy_hw = df_accuracy_hw.append(df_check)
+            df_accuracy_hw = pd.concat([df_accuracy_hw, df_check])
         else:
             df_accuracy_hw = df_check.copy()
         i = i+1
@@ -875,9 +866,9 @@ def holt_winter_exp_smt(store_num, product_num, list_name, period, split_date):
 df_forecast_1, df_accuracy_1, df_holt_winter_param1 = holt_winter_exp_smt(store_num = key_store_num_1, product_num = key_product_num_1, list_name = holt_winter_list, period = period_num, split_date = test_train_split_date)  
 df_forecast_2, df_accuracy_2, df_holt_winter_param2 = holt_winter_exp_smt(store_num = key_store_num_2, product_num = key_product_num_2, list_name = holt_winter_list, period = period_num, split_date = test_train_split_date)  
 
-df_holt_winter_forecast = df_forecast_1.append(df_forecast_2)
-df_holt_winter_accuracy = df_accuracy_1.append(df_accuracy_2)
-df_holt_winter_param = df_holt_winter_param1.append(df_holt_winter_param2)
+df_holt_winter_forecast = pd.concat([df_forecast_1,df_forecast_2])
+df_holt_winter_accuracy = pd.concat([df_accuracy_1,df_accuracy_2])
+df_holt_winter_param = pd.concat([df_holt_winter_param1,df_holt_winter_param2])
 
 df_holt_winter_forecast.head()
 df_holt_winter_accuracy.head(20)
@@ -914,7 +905,7 @@ def acf_pacf_plots(store_num, product_num, test_train, n_lags, n_periods_annual)
     # No Seasonality removed and no differencing
     plot_acf(df_arima['sales'], ax=plt.gca(), lags = n_lags, title = "Normal ACF Plot")
     plt.show()
-    plot_pacf(df_arima['sales'], ax=plt.gca(), lags = n_lags, title = "Normal PACF Plot")
+    plot_pacf(df_arima['sales'], method = 'ywm', ax=plt.gca(), lags = n_lags, title = "Normal PACF Plot")
     plt.show()
     
     # Remove seasonality    
@@ -924,13 +915,13 @@ def acf_pacf_plots(store_num, product_num, test_train, n_lags, n_periods_annual)
     
     plot_acf(df_arima['sales_wo_season'].dropna(), ax=plt.gca(), lags = n_lags, title = f"ACF Plot after removing Seasonaility(n_periods = {n_periods_annual})")
     plt.show()
-    plot_pacf(df_arima['sales_wo_season'].dropna(), ax=plt.gca(), lags = n_lags,title = f"PACF Plot after removing Seasonaility(n_periods = {n_periods_annual})")
+    plot_pacf(df_arima['sales_wo_season'].dropna(), ax=plt.gca(), method = 'ywm', lags = n_lags,title = f"PACF Plot after removing Seasonaility(n_periods = {n_periods_annual})")
     plt.show()
     
     # Remove seasonality and differencing done
     plot_acf(df_arima['sales_wo_season'].diff().dropna(), ax=plt.gca(), lags = n_lags, title = f"ACF Plot after removing Seasonaility(n_periods = {n_periods_annual})\n and differencing")
     plt.show()
-    plot_pacf(df_arima['sales_wo_season'].diff().dropna(), ax=plt.gca(), lags = n_lags, title = f"PACF Plot after removing Seasonaility(n_periods = {n_periods_annual})\n and differencing")
+    plot_pacf(df_arima['sales_wo_season'].diff().dropna(), ax=plt.gca(), method = 'ywm', lags = n_lags, title = f"PACF Plot after removing Seasonaility(n_periods = {n_periods_annual})\n and differencing")
     plt.show()
 
 acf_pacf_plots(store_num = key_store_num_1, product_num = key_product_num_1, test_train = test_train_split, n_lags = 75, n_periods_annual =7)
@@ -1020,7 +1011,7 @@ def auto_arima_without_exo(store_num, product_num, split_date):
     # plt.plot(forecast['Pred_UCI'], 'y--', label='Pred_UCI')    
     plt.fill_between(forecast.index, forecast['Pred_LCI'],  forecast['Pred_UCI'], alpha=0.3, color='g', label='Confidence Interval')
     
-    plt.title(f'Actual vs Forecast for Store {store_num} and Product/Item {product_num}') 
+    plt.title(f'AUTO ARIMA (*without* exogenous variables) - Actual vs Forecast for Store {store_num} and Product/Item {product_num}') 
     plt.legend(loc='upper left')
     plt.show()
     
@@ -1051,8 +1042,8 @@ def auto_arima_without_exo(store_num, product_num, split_date):
 df_forecast_1, df_accuracy_1, autoarima_no_exo_param_dict_1= auto_arima_without_exo(store_num = key_store_num_1, product_num = key_product_num_1, split_date = test_train_split_date)
 df_forecast_2, df_accuracy_2, autoarima_no_exo_param_dict_2= auto_arima_without_exo(store_num = key_store_num_2, product_num = key_product_num_2, split_date = test_train_split_date)
 
-df_autoarima_no_exo_forecast = df_forecast_1.append(df_forecast_2)
-df_autoarima_no_exo_accuracy = df_accuracy_1.append(df_accuracy_2)
+df_autoarima_no_exo_forecast = pd.concat([df_forecast_1,df_forecast_2])
+df_autoarima_no_exo_accuracy = pd.concat([df_accuracy_1,df_accuracy_2])
 
 ########################################################################################################################################
 #                                                                                                                                      #
@@ -1106,6 +1097,13 @@ def encode_and_bind(original_dataframe, feature_to_encode):
 # for feature in features_to_encode:
 #     df_arima_exo_update = encode_and_bind(original_dataframe = df_arima_exo, feature_to_encode = feature)
 df_arima_exo_update = encode_and_bind(original_dataframe = df_arima_exo, feature_to_encode = features_to_encode)
+    
+# df_arima_exo.info()
+# df_arima_exo_update.info()
+# df_arima_exo_update.head()
+# df_arima_exo_update.to_excel("check.xlsx")
+
+# Multi collinearity check
 
 def auto_arima_with_exo(store_num, product_num, split_date):
 
@@ -1115,8 +1113,41 @@ def auto_arima_with_exo(store_num, product_num, split_date):
     df_arima_multi_col_check = df_auto_arima_new.copy()
     df_arima_multi_col_check = df_arima_multi_col_check.drop(columns = ['date', 'store', 'item', 'sales'])
     df_arima_multi_col_check.info()
+
+    # NOT USING VIF since dummy variables have been created
+    # Removing the collinear variables using VIF 
+    
+    # def calculate_vif_(X, thresh):
+    #     variables = list(range(X.shape[1]))
+    #     dropped = True
+    #     while dropped:
+    #         dropped = False
+    #         vif = [variance_inflation_factor(X.iloc[:, variables].values, ix) for ix in range(X.iloc[:, variables].shape[1])]
+    
+    #         maxloc = vif.index(max(vif))
+    #         if max(vif) > thresh:
+    #             print('dropping \'' + X.iloc[:, variables].columns[maxloc] +
+    #                   '\' at index: ' + str(maxloc))
+    #             del variables[maxloc]
+    #             dropped = True
+    
+    #     print('Remaining variables:')
+    #     print(X.columns[variables])
+    #     return X.iloc[:, variables]
+    
+    # keep_cols = list(calculate_vif_(X = df_arima_multi_col_check, thresh = 5.0))
+    # print(keep_cols)
+    
+    # keep_cols.extend(['date', 'store', 'item', 'sales'])
+    # print(keep_cols)
+    
+    # df_arima_multi_col_check_2 = df_auto_arima_new.copy()
+    # df_arima_multi_col_check_2 = df_arima_multi_col_check_2[keep_cols]
+    # df_arima_multi_col_check_2.info()
     
     df_arima_multi_col_check_2 = df_auto_arima_new.copy()
+    
+    # 
     train_with_exo = df_arima_multi_col_check_2[(df_arima_multi_col_check_2['date'] < f'{split_date}')]
     test_with_exo = df_arima_multi_col_check_2[(df_arima_multi_col_check_2['date'] >= f'{split_date}')]
     
@@ -1191,7 +1222,7 @@ def auto_arima_with_exo(store_num, product_num, split_date):
     plt.fill_between(forecast_with_exo.index, forecast_with_exo['Pred_LCI'],  forecast_with_exo['Pred_UCI'], alpha=0.3, color='g'
                      ,label='Confidence Interval')
     
-    plt.title(f'Actual vs Forecast for Store {store_num} and Product/Item {product_num}') 
+    plt.title(f'AUTO ARIMA (*with* exogenous variables) - Actual vs Forecast for Store {store_num} and Product/Item {product_num}') 
     plt.legend(loc='upper left')
     plt.show()
     
@@ -1221,9 +1252,8 @@ def auto_arima_with_exo(store_num, product_num, split_date):
 df_forecast_1, df_accuracy_1, autoarima_with_exo_param_dict_1= auto_arima_with_exo(store_num = key_store_num_1, product_num = key_product_num_1, split_date = test_train_split_date)
 df_forecast_2, df_accuracy_2, autoarima_with_exo_param_dict_2= auto_arima_with_exo(store_num = key_store_num_2, product_num = key_product_num_2, split_date = test_train_split_date)
 
-df_autoarima_withexo_forecast = df_forecast_1.append(df_forecast_2)
-df_autoarima_withexo_accuracy = df_accuracy_1.append(df_accuracy_2)
-    
+df_autoarima_withexo_forecast = pd.concat([df_forecast_1,df_forecast_2])
+df_autoarima_withexo_accuracy = pd.concat([df_accuracy_1,df_accuracy_2])
 
 ######################################################################################################################################## 
 #                                                                                                                                      #    
@@ -1290,7 +1320,7 @@ def xg_boost (store_num, product_num, split_date, time_delta):
     plt.plot(train_xg_boost['sales'][-100:], label='Train')
     plt.plot(test_xg_boost['sales'], label='Test')
     plt.plot(test_xg_boost['sales_Prediction'], label='Prediction')  
-    plt.title(f'Actual vs Forecast for Store {store_num} and Product/Item {product_num}') 
+    plt.title(f'XGBoost - Actual vs Forecast for Store {store_num} and Product/Item {product_num}') 
     plt.legend(loc='upper left')
     plt.show()
     
@@ -1327,8 +1357,8 @@ def xg_boost (store_num, product_num, split_date, time_delta):
 df_forecast_1, df_accuracy_1, xgboost_param_dict_1 = xg_boost(store_num = key_store_num_1, product_num = key_product_num_1, split_date = test_train_split_date, time_delta = time_delta_var)
 df_forecast_2, df_accuracy_2, xgboost_param_dict_2 = xg_boost(store_num = key_store_num_2, product_num = key_product_num_2, split_date = test_train_split_date, time_delta = time_delta_var)
 
-df_xgboost_forecast = df_forecast_1.append(df_forecast_2)
-df_xgboost_accuracy = df_accuracy_1.append(df_accuracy_2)
+df_xgboost_forecast = pd.concat([df_forecast_1,df_forecast_2])
+df_xgboost_accuracy = pd.concat([df_accuracy_1,df_accuracy_2])
 
 ######################################################################################################################################## 
 #                                                                                                                                      #    
@@ -1359,5 +1389,6 @@ if output_accuracy == "YES":
     df_accuracy_all.to_excel(f'{output_path}Accuracy_all.xlsx')
 else:
     print("Accuracy dataframe was *NOT* output to excel")
+
 
 ########################################################### END OF CODE ################################################################
