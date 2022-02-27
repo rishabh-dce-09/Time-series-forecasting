@@ -48,7 +48,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 # import datetime as datetime
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 import matplotlib.pyplot as plt
 # from matplotlib import pyplot
 from matplotlib.pyplot import figure
@@ -74,6 +74,8 @@ from xgboost import plot_importance, plot_tree
 
 import lightgbm as lgb 
 import datetime as dtime
+
+pd.options.mode.chained_assignment = None  # default='warn'
 
 # from fbprophet import Prophet
 
@@ -142,6 +144,8 @@ output_forecast = "YES"
 output_accuracy = "YES"
 # output_accuracy = "NO"
 
+today = date.today()
+date_stamp = today.strftime('%d_%m_%Y') # Format: dd_mm_yyyy
 
 #############  READ THE DATA   ##############
 
@@ -803,70 +807,6 @@ def holt_winter_exp_smt(store_num, product_num, list_name, period, split_date):
     i = 0
     df_holt_winter_param = None
     while i < len(list_name):
-        fit = ExponentialSmoothing(np.asarray(train['sales']) , seasonal_periods=period ,trend=list_name[i][0], seasonal=list_name[i][1],damped = list_name[i][2]).fit()
-        test[f'Holt_Winter_{list_name[i][0]}_{list_name[i][1]}_{list_name[i][2]}'] = fit.forecast(len(test))
-        
-        df_check = fit.params_formatted.iloc[:6,:]
-        df_check['trend'] = list_name[i][0]
-        df_check['seasonal'] = list_name[i][1]
-        df_check['damped'] = list_name[i][2]
-    
-        if df_holt_winter_param is None:
-            df_holt_winter_param = df_check
-        else:
-            df_holt_winter_param = df_holt_winter_param.append(df_check)
-            
-        # print(HoltWintersResults(fit) #Check
-        i = i+1
-    
-    # plt.figure(figsize=(10,6))         
-    figure(figsize=(10,6))  
-    plt.style.use('seaborn-dark-palette')
-    plt.plot(train['sales'][-200:], label='Train')
-    plt.plot(test['sales'], label='Test')
-    i = 0
-    while i < len(list_name):
-        plt.plot(test[f'Holt_Winter_{list_name[i][0]}_{list_name[i][1]}_{list_name[i][2]}'], label=f'Holt_Winter_{list_name[i][0]}_{list_name[i][1]}_{list_name[i][2]}')
-        i = i +1
-
-    plt.title(f"Holt-Winter's Smoothing for Store {store_num} and Product/Item {product_num}")  
-
-######################################################################################################################################## 
-#                                                                                                                                      #    
-#########################                                    HOLT'S WINTER                                  ############################ 
-#                                                                                                                                      #
-########################################################################################################################################
-
-### 5.b.3 Tripe Exponential Smoothing (includes Trend and Seasonality) ###
-
-# holt_winter_list = [['add','add',True],['add','add',False],['add','mul',True],['add','mul',False],['mul','mul',True],['mul','mul',False]]
-# holt_winter_list = [['add','add',True],['add','add',False],['add','mul',True],['add','mul',False]]
-# holt_winter_list = [['add','add',True],['add','mul',True]]
-
-def holt_winter_exp_smt(store_num, product_num, list_name, period, split_date):
-    
-    # store_num = key_store_num_1
-    # product_num = key_product_num_1
-    list_name = holt_winter_list
-    period = period_num
-    # split_date = test_train_split_date
-    
-    df_exp_smo= df_copy.copy()
-    df_exp_smo = df_exp_smo[(df_copy['store'] == store_num) & (df_copy['item'] == product_num)] 
-    df_exp_smo.index = df_exp_smo['date']
-    
-    # num_rows = round(test_train*len(df_exp_smo['sales']))
-    
-    # train = df_exp_smo[:num_rows]
-    # test = df_exp_smo[num_rows+1:]
-    train = df_exp_smo[(df_exp_smo['date'] < f'{split_date}')]
-    test = df_exp_smo[(df_exp_smo['date'] >= f'{split_date}')]
-    # len(train)
-    # len(test)
-    
-    i = 0
-    df_holt_winter_param = None
-    while i < len(list_name):
         fit = ExponentialSmoothing(np.asarray(train['sales']) , seasonal_periods=period ,trend=list_name[i][0], seasonal=list_name[i][1],damped_trend = list_name[i][2]).fit()
         test[f'Holt_Winter_{list_name[i][0]}_{list_name[i][1]}_{list_name[i][2]}'] = fit.forecast(len(test))
         
@@ -1440,19 +1380,21 @@ data_frames = [df_holt_winter_forecast, df_autoarima_no_exo_forecast, df_autoari
 df_forecast_all = reduce(lambda  left,right: pd.merge(left,right,on=['date', 'store', 'item'], how='outer'), data_frames)
 
 if output_forecast == "YES":
-    df_forecast_all.to_excel(f'{output_path}Forecast_all.xlsx')
+    df_forecast_all.to_excel(f'{output_path}Forecast_all_{date_stamp}.xlsx', index = False)
 else:
     print("Forecast dataframe was *NOT* output to excel")
 
 # Accuracy
-df_accuracy_all = df_autoarima_withexo_accuracy.append([df_autoarima_no_exo_accuracy, df_holt_winter_accuracy,
+# df_accuracy_all = df_autoarima_withexo_accuracy.append([df_autoarima_no_exo_accuracy, df_holt_winter_accuracy, df_xgboost_accuracy]).reset_index().drop(columns = {'index'})
+
+df_accuracy_all = pd.concat([df_autoarima_withexo_accuracy, df_autoarima_no_exo_accuracy, df_holt_winter_accuracy,
                                                         df_xgboost_accuracy]).reset_index().drop(columns = {'index'})
+
 df_accuracy_all.head(20)
 
 if output_accuracy == "YES":
-    df_accuracy_all.to_excel(f'{output_path}Accuracy_all.xlsx')
+    df_accuracy_all.to_excel(f'{output_path}Accuracy_all_{date_stamp}.xlsx', index = False)
 else:
     print("Accuracy dataframe was *NOT* output to excel")
-
 
 ########################################################### END OF CODE ################################################################
