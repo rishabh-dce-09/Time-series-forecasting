@@ -728,7 +728,7 @@ def holt_linear_exp_smt(store_num, product_num, list_name, split_date):
 
     i = 0
     while i <len(list_name):
-        fit = Holt(np.asarray(train['sales'])).fit(smoothing_level = list_name[i][0],smoothing_slope = list_name[i][1])
+        fit = Holt(np.asarray(train['sales'])).fit(smoothing_level = list_name[i][0],smoothing_trend = list_name[i][1])
         test[f'Holt_linear_{round(list_name[i][0]*10)}_{list_name[i][1]}'] = fit.forecast(len(test))
         i = i +1
     
