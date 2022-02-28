@@ -1301,7 +1301,7 @@ def xg_boost (store_num, product_num, split_date, time_delta):
                  reg_lambda=0.45,
                  subsample=0.6,
                  seed=123,
-                 eval_metric = 'rmse')
+                 eval_metric = 'mape')
     model.fit(X_train,y_train,eval_set=[(X_train, y_train), (X_test, y_test)], early_stopping_rounds=50,verbose=False) 
     
     # _ = plot_importance(reg, height=0.9)
