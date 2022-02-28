@@ -1364,6 +1364,110 @@ df_forecast_2, df_accuracy_2, xgboost_param_dict_2 = xg_boost(store_num = key_st
 df_xgboost_forecast = pd.concat([df_forecast_1,df_forecast_2])
 df_xgboost_accuracy = pd.concat([df_accuracy_1,df_accuracy_2])
 
+
+######################################################################################################################################## 
+#                                                                                                                                      #    
+############################                                  LIGHT GBM                                   ############################## 
+#                                                                                                                                      #
+########################################################################################################################################
+
+def light_gbm(store_num, product_num, split_date): 
+
+    # store_num = key_store_num_1
+    # product_num = key_product_num_1
+    # test_train = 0.75
+    # split_date = '2016-09-01'
+    
+    # split_date_update = '2015-06-01'
+    
+    
+    df_light_gbm = df_arima_exo_update.copy()    
+    df_light_gbm = df_light_gbm[(df_light_gbm['store'] == store_num) & (df_light_gbm['item'] == product_num)] 
+    
+    train_light_gbm = df_light_gbm[(df_light_gbm['date'] < f'{split_date}')]
+    test_light_gbm = df_light_gbm[(df_light_gbm['date'] >= f'{split_date}')]
+    
+    y_train = train_light_gbm['sales']
+    X_train = train_light_gbm.drop(columns = ['date','sales','store','item'])
+    
+    y_test = test_light_gbm['sales']
+    X_test = test_light_gbm.drop(columns = ['date','sales','store','item'])
+    
+    train_data=lgb.Dataset(X_train,label=y_train)
+    
+    hyper_params = {
+        'task': 'train',
+        'boosting_type': 'gbdt',
+        'objective': 'regression_l1',
+        'metric': ['mape'],
+        'learning_rate': 0.2,
+        'feature_fraction': 0.9,
+        'bagging_fraction': 0.7,
+        'bagging_freq': 10,
+        'verbose': 0,
+        "max_depth": 5,
+        "num_leaves": 10,  
+        "max_bin": 512,
+        "num_iterations": 100000,
+        "n_estimators": 1000
+    }
+    
+    #training our model using light gbm
+    num_round=50
+    start=dtime.datetime.now()
+    gbm = lgb.LGBMRegressor(**hyper_params)
+    gbm.fit(X_train, y_train, eval_set=[(X_test, y_test)], eval_metric='l1', early_stopping_rounds=1000)
+    # gbm.fit(train_data, y_train, eval_set=[(X_test, y_test)], eval_metric='l1', early_stopping_rounds=1000)
+    
+    stop=dtime.datetime.now()
+    
+    #Execution time of the model
+    execution_time_lgbm = stop-start
+    execution_time_lgbm
+    
+    test_light_gbm['sales_Prediction'] = gbm.predict(X_test, num_iteration=gbm.best_iteration_)
+    
+    df_test_forecast = test_light_gbm.copy().rename(columns={"sales_Prediction":"Prediction_lightgbm"})
+    df_test_forecast = df_test_forecast[['Prediction_lightgbm']]
+    df_test_forecast = df_test_forecast.merge(test_light_gbm[['store','item','sales']], how='inner', left_index= True,
+                                              right_index = True)
+    
+    
+    #plot the predictions for validation set
+    figure(figsize=(10,6))    
+    plt.style.use('seaborn-dark-palette')
+    plt.plot(train_light_gbm['sales'][-100:], label='Train')
+    plt.plot(test_light_gbm['sales'], label='Test')
+    plt.plot(test_light_gbm['sales_Prediction'], label='Prediction')
+    plt.title(f'LightGBM - Actual vs Forecast for Store {store_num} and Product/Item {product_num}') 
+    plt.legend(loc='upper left')
+    plt.show()
+    
+    y_true = test_light_gbm['sales']
+    y_pred = test_light_gbm['sales_Prediction']
+    y_true = np.array(y_true[:])
+    y_pred = np.array(y_pred[:])
+    
+    MAPE_var = round(np.mean(np.abs((y_true - y_pred) / y_true)) * 100,2)
+    MSE_var = round(np.mean((np.square(y_pred - y_true))),2)
+    RMSE_var = round(np.sqrt(np.mean((np.square(y_pred - y_true)))),2)
+    
+    print(f"MAPE(Light GBM) for Store {store_num} and Product/Item {product_num} is: {MAPE_var}")
+    print(f"MSE(Light GBM) for Store {store_num} and Product/Item {product_num} is: {MSE_var}")
+    print(f"RMSE(Light GBM) for Store {store_num} and Product/Item {product_num} is: {RMSE_var} \n")
+
+    df_accuracy = pd.DataFrame({'ID': ['LIGHT_GBM'], 'Store': [f'{store_num}'], 'Product':[f'{product_num}'],
+                            'MAPE':[f'{MAPE_var}'],'MSE':[f'{MSE_var}'],'RMSE':[f'{RMSE_var}']}) 
+    
+    return df_test_forecast, df_accuracy
+
+df_forecast_1, df_accuracy_1 = light_gbm(store_num = key_store_num_1, product_num = key_product_num_1, split_date = test_train_split_date)
+df_forecast_2, df_accuracy_2 = light_gbm(store_num = key_store_num_2, product_num = key_product_num_2, split_date = test_train_split_date)
+
+df_light_gbm_forecast = pd.concat([df_forecast_1,df_forecast_2])
+df_light_gbm_accuracy = pd.concat([df_accuracy_1,df_accuracy_2])
+
+
 ######################################################################################################################################## 
 #                                                                                                                                      #    
 #########################             COMBINE ALL THE FORECAST AND ACCURACY DATASETS TOGETHER               ############################ 
@@ -1375,8 +1479,10 @@ df_holt_winter_forecast = df_holt_winter_forecast.reset_index()
 df_autoarima_withexo_forecast = df_autoarima_withexo_forecast.drop(columns = {'sales'}).reset_index()
 df_autoarima_no_exo_forecast = df_autoarima_no_exo_forecast.drop(columns = {'sales'}).reset_index()
 df_xgboost_forecast = df_xgboost_forecast.drop(columns = {'sales'}).reset_index()
+df_light_gbm_forecast = df_light_gbm_forecast.drop(columns = {'sales'}).reset_index()
 
-data_frames = [df_holt_winter_forecast, df_autoarima_no_exo_forecast, df_autoarima_withexo_forecast, df_xgboost_forecast]
+data_frames = [df_holt_winter_forecast, df_autoarima_no_exo_forecast, df_autoarima_withexo_forecast,
+               df_xgboost_forecast, df_light_gbm_forecast]
 df_forecast_all = reduce(lambda  left,right: pd.merge(left,right,on=['date', 'store', 'item'], how='outer'), data_frames)
 
 if output_forecast == "YES":
@@ -1387,8 +1493,9 @@ else:
 # Accuracy
 # df_accuracy_all = df_autoarima_withexo_accuracy.append([df_autoarima_no_exo_accuracy, df_holt_winter_accuracy, df_xgboost_accuracy]).reset_index().drop(columns = {'index'})
 
-df_accuracy_all = pd.concat([df_autoarima_withexo_accuracy, df_autoarima_no_exo_accuracy, df_holt_winter_accuracy,
-                                                        df_xgboost_accuracy]).reset_index().drop(columns = {'index'})
+df_accuracy_all = pd.concat([df_autoarima_withexo_accuracy, df_autoarima_no_exo_accuracy,
+                             df_holt_winter_accuracy, df_xgboost_accuracy,
+                             df_light_gbm_accuracy]).reset_index().drop(columns = {'index'})
 
 df_accuracy_all.head(20)
 
