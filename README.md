@@ -17,6 +17,6 @@ As per the link, the steps to be followed to rectify the issue are:
   Step 2: Install graphviz module for python (use either of 2)
 
     (a) pip
-      pip install graphviz
+      pip install graphviz==0.18
     (b) conda
       conda install graphviz
