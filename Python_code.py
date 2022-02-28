@@ -1491,8 +1491,6 @@ else:
     print("Forecast dataframe was *NOT* output to excel")
 
 # Accuracy
-# df_accuracy_all = df_autoarima_withexo_accuracy.append([df_autoarima_no_exo_accuracy, df_holt_winter_accuracy, df_xgboost_accuracy]).reset_index().drop(columns = {'index'})
-
 df_accuracy_all = pd.concat([df_autoarima_withexo_accuracy, df_autoarima_no_exo_accuracy,
                              df_holt_winter_accuracy, df_xgboost_accuracy,
                              df_light_gbm_accuracy]).reset_index().drop(columns = {'index'})
