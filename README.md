@@ -14,7 +14,7 @@ As per the link, the steps to be followed to rectify the issue are:
     (d) Close any opened Juypter notebook and the command prompt
     (e) Restart Jupyter / cmd prompt and test
     
-  Step 2: Install graphviz module for python
+  Step 2: Install graphviz module for python (use either of 2)
 
     (a) pip
       pip install graphviz
